@@ -9,4 +9,4 @@ documentation of how to use LAN9512 on ubilinux.
 The kernel module for smsc95xx (Ethernet controller) can be found [here](https://github.com/LGSInnovations/Edison-Ethernet/releases),
 as well as the [installation guide](https://github.com/LGSInnovations/Edison-Ethernet/blob/master/guides/installation.md).
 
-[edison_front]: https://github.com/lab11/IntelEdisonGateway/images/edison_front.png "Front"
+[edison_front]: https://github.com/lab11/IntelEdisonGateway/blob/master/images/edison_front.png "Front"
