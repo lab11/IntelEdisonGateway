@@ -4,13 +4,22 @@ from edisonLED import edisonLED
 from time import sleep
 import mraa
 from datetime import datetime
+import json
+import urllib2
 
 CC2538TXFIFO_SIZE = 8
 CC2538INTPINNUM = 38 # MRAA number, GP43
 CC2538RESETPINNUM = 51 # MRAA number, GP41
 
+GATD_URL = 'http://post.gatd.io/0408e009-bef2-4b5b-b4fe-df0b9e3c7a2a'
+
 def triumviCallBackISR(args):
     args.cc2538ISR()
+
+def postDataToGATD(packet):
+    req = urllib2.Request(GATD_URL)
+    req.add_header('Content-Type', 'application/json')
+    response = urllib2.urlopen(req, json.dumps(packet.dictionary))
 
 class triumviPacket(object):
     def __init__(self):
@@ -24,10 +33,13 @@ class triumviPacket(object):
         'Frame Write', 'Panel ID', 'Circuit ID']
         
     def parseData(self, data):
-        self.dictionary['Packet Type'] = data[0]
+        if data[0] == self._TRIUMVI_PKT_ID:
+            self.dictionary['Packet Type'] = 'Triumvi Packet'
+        elif data[0] == self._AES_PKT_ID:
+            self.dictionary['Packet Type'] = 'Old Triumvi Packet'
         self.dictionary['Source Addr'] = [hex(i) for i in data[1:9]]
         self.dictionary['Power'] = (data[9] + (data[10]<<8) + (data[11]<<16) + (data[12]<<24))/1000
-        if self.dictionary['Packet Type']== self._TRIUMVI_PKT_ID:
+        if self.dictionary['Packet Type'] == 'Triumvi Packet':
             if data[13] & 128:
                 self.dictionary['External Voltage Supply'] = True
             if data[13] & 64:
@@ -39,6 +51,15 @@ class triumviPacket(object):
         if self.dictionary['Battery Pack Attached']:
             self.dictionary['Panel ID'] = hex(data[14])
             self.dictionary['Circuit ID'] = data[15]
+
+    def addTimeStamp(self, timeStamp):
+        self.dictionary['Time Stamp'] = {\
+            'Year':timeStamp.year, \
+            'Month':timeStamp.month, \
+            'Day:':timeStamp.day, \
+            'Hour':timeStamp.hour, \
+            'Minute':timeStamp.minute, \
+            'Second':timeStamp.second }
 
             
 
@@ -83,10 +104,12 @@ class triumvi(object):
             timeStamp.hour, timeStamp.minute, timeStamp.second))
         newPacket = triumviPacket()
         newPacket.parseData(data)
+        newPacket.addTimeStamp(timeStamp)
         for key in newPacket._DISPLAYORDER:
             if key in newPacket.dictionary:
                 print('{0}: {1}'.format(key, newPacket.dictionary[key]))
         print('')
+        postDataToGATD(newPacket)
         self.blueLed.leds_off()
 
     def flushCC2538TXFIFO(self):
