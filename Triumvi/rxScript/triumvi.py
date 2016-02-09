@@ -48,7 +48,7 @@ class triumviPacket(object):
                 self.dictionary['Three Phase Unit'] = True
             if data[13] & 8:
                 self.dictionary['Fram Write'] = True
-        if self.dictionary['Battery Pack Attached']:
+        if self.dictionary.get('Battery Pack Attached', False):
             self.dictionary['Panel ID'] = hex(data[14])
             self.dictionary['Circuit ID'] = data[15]
 
