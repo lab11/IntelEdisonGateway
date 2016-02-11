@@ -21,7 +21,7 @@ def triumviCallBackISR(args):
     condition.release()
 
 class triumviPacket(object):
-    def __init__(self):
+    def __init__(self, data):
         self.dictionary = {}
 
         self._TRIUMVI_PKT_ID = 160
@@ -31,11 +31,13 @@ class triumviPacket(object):
         'External Voltage Supply', 'Battery Pack Attached', 'Three Phase Unit'\
         'Frame Write', 'Panel ID', 'Circuit ID']
 
-    def parseData(self, data):
         if data[0] == self._TRIUMVI_PKT_ID:
             self.dictionary['Packet Type'] = 'Triumvi Packet'
         elif data[0] == self._AES_PKT_ID:
             self.dictionary['Packet Type'] = 'Old Triumvi Packet'
+        else:
+            return None
+
         self.dictionary['Source Addr'] = [hex(i) for i in data[1:9]]
         device_id = ''.join(['{:02x}'.format(i) for i in data[1:9]])
         self.dictionary['Power'] = (data[9] + (data[10]<<8) + (data[11]<<16) + (data[12]<<24))/1000
@@ -114,14 +116,14 @@ class triumvi(object):
         data = self.cc2538Spi.write(dataOut)
         #print("Data: {0}".format(data))
         timeStamp = datetime.now()
-        print('Time Stamp: {0}, {1:02d}/{2:02d}, {3:02d}:{4:02d}:{5:02d}'.\
-            format(timeStamp.year, timeStamp.month, timeStamp.day,\
-            timeStamp.hour, timeStamp.minute, timeStamp.second))
-        newPacket = triumviPacket()
-        newPacket.parseData(data)
-        newPacket.addTimeStamp(timeStamp)
-        self.callback(newPacket)
-        self.blueLed.leds_off()
+        # print('Time Stamp: {0}, {1:02d}/{2:02d}, {3:02d}:{4:02d}:{5:02d}'.\
+        #     format(timeStamp.year, timeStamp.month, timeStamp.day,\
+        #     timeStamp.hour, timeStamp.minute, timeStamp.second))
+        newPacket = triumviPacket(data)
+        if newPacket:
+            newPacket.addTimeStamp(timeStamp)
+            self.callback(newPacket)
+            self.blueLed.leds_off()
 
     def flushCC2538TXFIFO(self):
         dummy = self.cc2538Spi.write(CC2538TXFIFO_SIZE*[self._SPI_MASTER_DUMMY])
