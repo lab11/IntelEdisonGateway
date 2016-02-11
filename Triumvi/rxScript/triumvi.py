@@ -100,6 +100,10 @@ class triumvi(object):
             # When we have been notified we want to read the cc2538
             self.cc2538ISR()
 
+            # Keep reading while there are pending interrupts
+            while self.cc2538DataReadyInt.read() == 1:
+                self.cc2538ISR()
+
     def requestData(self):
         dummy = self.cc2538Spi.writeByte(self._SPI_MASTER_REQ_DATA)
 

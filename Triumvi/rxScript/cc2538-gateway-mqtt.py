@@ -19,7 +19,6 @@ import paho.mqtt.client as mqtt
 # Called on every packet from the Triumvi
 def callback (pkt):
     json_pkt = json.dumps(pkt.dictionary)
-    print(json_pkt)
     client.publish('gateway-data', json_pkt)
 
 # Connect to the local MQTT broker
