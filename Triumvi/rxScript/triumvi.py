@@ -1,43 +1,45 @@
 
-from mySPI import mySPI 
+from mySPI import mySPI
 from edisonLED import edisonLED
 from time import sleep
 import mraa
 from datetime import datetime
-import json
-import urllib2
+
+import threading
 
 CC2538INTPINNUM = 38 # MRAA number, GP43
 CC2538RESETPINNUM = 51 # MRAA number, GP41
 MAX_TRIUMVI_PKT_LEN = 16 # maximum triumvi packet length
 
-GATD_URL = 'http://post.gatd.io/0408e009-bef2-4b5b-b4fe-df0b9e3c7a2a'
+
+condition = threading.Condition()
 
 def triumviCallBackISR(args):
-    args.cc2538ISR()
-
-def postDataToGATD(packet):
-    req = urllib2.Request(GATD_URL)
-    req.add_header('Content-Type', 'application/json')
-    response = urllib2.urlopen(req, json.dumps(packet.dictionary))
+    # args.cc2538ISR()
+    condition.acquire()
+    condition.notify()
+    condition.release()
 
 class triumviPacket(object):
-    def __init__(self):
+    def __init__(self, data):
         self.dictionary = {}
-        
+
         self._TRIUMVI_PKT_ID = 160
         self._AES_PKT_ID = 120
         self._DISPLAYORDER = \
         ['Packet Type', 'Source Addr', 'Power', \
         'External Voltage Supply', 'Battery Pack Attached', 'Three Phase Unit'\
         'Frame Write', 'Panel ID', 'Circuit ID']
-        
-    def parseData(self, data):
+
         if data[0] == self._TRIUMVI_PKT_ID:
             self.dictionary['Packet Type'] = 'Triumvi Packet'
         elif data[0] == self._AES_PKT_ID:
             self.dictionary['Packet Type'] = 'Old Triumvi Packet'
+        else:
+            return None
+
         self.dictionary['Source Addr'] = [hex(i) for i in data[1:9]]
+        device_id = ''.join(['{:02x}'.format(i) for i in data[1:9]])
         self.dictionary['Power'] = (data[9] + (data[10]<<8) + (data[11]<<16) + (data[12]<<24))/1000
         if self.dictionary['Packet Type'] == 'Triumvi Packet':
             if data[13] & 128:
@@ -52,6 +54,14 @@ class triumviPacket(object):
             self.dictionary['Panel ID'] = hex(data[14])
             self.dictionary['Circuit ID'] = data[15]
 
+        self.dictionary['_meta'] = {
+            'received_time': datetime.utcnow().isoformat(),
+            'gateway_id': '1',
+            'receiver': 'cc2538',
+            'device_id': device_id
+        }
+        self.dictionary['device'] = 'Triumvi'
+
     def addTimeStamp(self, timeStamp):
         self.dictionary['Time Stamp'] = {\
             'Year':timeStamp.year, \
@@ -61,15 +71,16 @@ class triumviPacket(object):
             'Minute':timeStamp.minute, \
             'Second':timeStamp.second }
 
-            
+
 
 class triumvi(object):
-    def __init__(self):
+    def __init__(self, callback):
+        self.callback = callback
         self.cc2538Spi = mySPI(0)
         self.cc2520Spi = mySPI(1)
         self.cc2538DataReadyInt = mraa.Gpio(CC2538INTPINNUM)
         self.cc2538DataReadyInt.dir(mraa.DIR_IN)
-        self.cc2538DataReadyInt.isr(mraa.EDGE_RISING, triumviCallBackISR, self)
+        self.cc2538DataReadyInt.isr(mraa.EDGE_RISING, triumviCallBackISR, 8)
         self.cc2538Reset = mraa.Gpio(CC2538RESETPINNUM)
         self.cc2538Reset.dir(mraa.DIR_OUT)
         self.cc2538Reset.write(0) # active low
@@ -82,6 +93,16 @@ class triumvi(object):
         self._SPI_MASTER_REQ_DATA = 0
         self._SPI_MASTER_DUMMY = 1
         self._SPI_MASTER_GET_DATA = 2
+
+        condition.acquire()
+        while True:
+            condition.wait()
+            # When we have been notified we want to read the cc2538
+            self.cc2538ISR()
+
+            # Keep reading while there are pending interrupts
+            while self.cc2538DataReadyInt.read() == 1:
+                self.cc2538ISR()
 
     def requestData(self):
         dummy = self.cc2538Spi.writeByte(self._SPI_MASTER_REQ_DATA)
@@ -99,18 +120,14 @@ class triumvi(object):
         data = self.cc2538Spi.write(dataOut)
         #print("Data: {0}".format(data))
         timeStamp = datetime.now()
-        print('Time Stamp: {0}, {1:02d}/{2:02d}, {3:02d}:{4:02d}:{5:02d}'.\
-            format(timeStamp.year, timeStamp.month, timeStamp.day,\
-            timeStamp.hour, timeStamp.minute, timeStamp.second))
-        newPacket = triumviPacket()
-        newPacket.parseData(data)
-        newPacket.addTimeStamp(timeStamp)
-        for key in newPacket._DISPLAYORDER:
-            if key in newPacket.dictionary:
-                print('{0}: {1}'.format(key, newPacket.dictionary[key]))
-        print('')
-        postDataToGATD(newPacket)
-        self.blueLed.leds_off()
+        # print('Time Stamp: {0}, {1:02d}/{2:02d}, {3:02d}:{4:02d}:{5:02d}'.\
+        #     format(timeStamp.year, timeStamp.month, timeStamp.day,\
+        #     timeStamp.hour, timeStamp.minute, timeStamp.second))
+        newPacket = triumviPacket(data)
+        if newPacket:
+            newPacket.addTimeStamp(timeStamp)
+            self.callback(newPacket)
+            self.blueLed.leds_off()
 
     def flushCC2538TXFIFO(self):
         self.redLed.leds_on()
@@ -124,8 +141,8 @@ class triumvi(object):
 
     def resetcc2538(self):
         self.cc2538Reset.write(0) # active low
-        self.cc2538Reset.write(1) 
+        self.cc2538Reset.write(1)
 
-        
+
 
 

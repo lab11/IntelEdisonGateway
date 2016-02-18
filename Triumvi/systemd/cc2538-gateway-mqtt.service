@@ -1,0 +1,13 @@
+[Unit]
+Description=Collect 15.4 packets from the CC2538.
+After=mosquitto.service
+
+[Service]
+ExecStart=/home/debian/IntelEdisonGateway/Triumvi/rxScript/cc2538-gateway-mqtt.py
+Restart=always
+StandardOutput=syslog
+StandardError=syslog
+SyslogIdentifier=cc2538-gateway-mqtt
+
+[Install]
+WantedBy=multi-user.target
