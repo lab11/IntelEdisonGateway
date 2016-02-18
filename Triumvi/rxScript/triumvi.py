@@ -7,9 +7,9 @@ from datetime import datetime
 import json
 import urllib2
 
-CC2538TXFIFO_SIZE = 8
 CC2538INTPINNUM = 38 # MRAA number, GP43
 CC2538RESETPINNUM = 51 # MRAA number, GP41
+MAX_TRIUMVI_PKT_LEN = 16 # maximum triumvi packet length
 
 GATD_URL = 'http://post.gatd.io/0408e009-bef2-4b5b-b4fe-df0b9e3c7a2a'
 
@@ -88,7 +88,7 @@ class triumvi(object):
 
     def getData(self):
         length = self.cc2538Spi.writeByte(self._SPI_MASTER_DUMMY)
-        if length < 2:
+        if length < 2 or length > MAX_TRIUMVI_PKT_LEN:
             self.flushCC2538TXFIFO()
             return
         self.blueLed.leds_on()
@@ -113,7 +113,9 @@ class triumvi(object):
         self.blueLed.leds_off()
 
     def flushCC2538TXFIFO(self):
-        dummy = self.cc2538Spi.write(CC2538TXFIFO_SIZE*[self._SPI_MASTER_DUMMY])
+        self.redLed.leds_on()
+        dummy = self.cc2538Spi.write([self._SPI_MASTER_GET_DATA, MAX_TRIUMVI_PKT_LEN-1] + (MAX_TRIUMVI_PKT_LEN-2)*[0])
+        self.redLed.leds_off()
 
     def cc2538ISR(self):
         self.requestData()
