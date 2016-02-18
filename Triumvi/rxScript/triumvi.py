@@ -10,6 +10,7 @@ import threading
 CC2538INTPINNUM = 38 # MRAA number, GP43
 CC2538RESETPINNUM = 51 # MRAA number, GP41
 MAX_TRIUMVI_PKT_LEN = 16 # maximum triumvi packet length
+MIN_TRIUMVI_PKT_LEN = 14 # maximum triumvi packet length
 
 
 condition = threading.Condition()
@@ -109,14 +110,12 @@ class triumvi(object):
 
     def getData(self):
         length = self.cc2538Spi.writeByte(self._SPI_MASTER_DUMMY)
-        if length < 2 or length > MAX_TRIUMVI_PKT_LEN:
+        if length < MIN_TRIUMVI_PKT_LEN or length > MAX_TRIUMVI_PKT_LEN:
             self.flushCC2538TXFIFO()
             return
         self.blueLed.leds_on()
         #print('data length: {0}'.format(length))
-        dataOut = [self._SPI_MASTER_GET_DATA, length-1]
-        if length > 2:
-            dataOut += (length-2)*[0]
+        dataOut = [self._SPI_MASTER_GET_DATA, length-1] + (length-2)*[0]
         data = self.cc2538Spi.write(dataOut)
         #print("Data: {0}".format(data))
         timeStamp = datetime.now()
