@@ -11,6 +11,7 @@ CC2538INTPINNUM = 38 # MRAA number, GP43
 CC2538RESETPINNUM = 51 # MRAA number, GP41
 MAX_TRIUMVI_PKT_LEN = 16 # maximum triumvi packet length
 MIN_TRIUMVI_PKT_LEN = 14 # maximum triumvi packet length
+MAX_FLUSH_THRESHOLD = 32 # maximum trials before reset cc2538
 
 
 condition = threading.Condition()
@@ -86,6 +87,7 @@ class triumvi(object):
         self.cc2538Reset.dir(mraa.DIR_OUT)
         self.cc2538Reset.write(0) # active low
         self.cc2538Reset.write(1) # active low
+        self.resetCount = 0
 
         self.redLed     = edisonLED('red')
         self.greenLed   = edisonLED('green')
@@ -127,15 +129,21 @@ class triumvi(object):
             newPacket.addTimeStamp(timeStamp)
             self.callback(newPacket)
             self.blueLed.leds_off()
+            self.resetCount = 0
 
     def flushCC2538TXFIFO(self):
         self.redLed.leds_on()
         dummy = self.cc2538Spi.write([self._SPI_MASTER_GET_DATA, MAX_TRIUMVI_PKT_LEN-1] + (MAX_TRIUMVI_PKT_LEN-2)*[0])
+        self.resetCount += 1
+        if self.resetCount == MAX_FLUSH_THRESHOLD:
+            self.resetCount = 0
+            self.resetcc2538()
         self.redLed.leds_off()
 
     def cc2538ISR(self):
         self.requestData()
-        sleep(0.01)
+        while self.cc2538DataReadyInt.read() == 1:
+            pass
         self.getData()
 
     def resetcc2538(self):
