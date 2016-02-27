@@ -96,6 +96,8 @@ class triumvi(object):
         self._SPI_MASTER_REQ_DATA = 0
         self._SPI_MASTER_DUMMY = 1
         self._SPI_MASTER_GET_DATA = 2
+        self._SPI_MASTER_RADIO_ON = 3
+        self._SPI_MASTER_RADIO_OFF = 4
 
         condition.acquire()
         while True:
@@ -150,6 +152,11 @@ class triumvi(object):
         self.cc2538Reset.write(0) # active low
         self.cc2538Reset.write(1)
 
+    def radioOn(self):
+        dummy = self.cc2538Spi.writeByte(self._SPI_MASTER_RADIO_ON)
+
+    def radioOff(self):
+        dummy = self.cc2538Spi.writeByte(self._SPI_MASTER_RADIO_OFF)
 
 
 
