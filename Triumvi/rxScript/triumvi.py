@@ -2,6 +2,7 @@
 from mySPI import mySPI
 from edisonLED import edisonLED
 from time import sleep
+import uuid
 import mraa
 from datetime import datetime
 
@@ -12,6 +13,8 @@ CC2538RESETPINNUM = 51 # MRAA number, GP41
 MAX_TRIUMVI_PKT_LEN = 16 # maximum triumvi packet length
 MIN_TRIUMVI_PKT_LEN = 14 # maximum triumvi packet length
 MAX_FLUSH_THRESHOLD = 32 # maximum trials before reset cc2538
+
+gateway_id = ':'.join(['{:02x}'.format((uuid.getnode() >> i) & 0xff) for i in range(0,8*6,8)][::-1])
 
 
 condition = threading.Condition()
@@ -40,7 +43,7 @@ class triumviPacket(object):
         else:
             return None
 
-        self.dictionary['Source Addr'] = [hex(i) for i in data[1:9]]
+        # self.dictionary['Source Addr'] = [hex(i) for i in data[1:9]]
         device_id = ''.join(['{:02x}'.format(i) for i in data[1:9]])
         self.dictionary['Power'] = (data[9] + (data[10]<<8) + (data[11]<<16) + (data[12]<<24))/1000
         if self.dictionary['Packet Type'] == 'Triumvi Packet':
@@ -53,12 +56,12 @@ class triumviPacket(object):
             if data[13] & 8:
                 self.dictionary['Fram Write'] = True
         if self.dictionary.get('Battery Pack Attached', False):
-            self.dictionary['Panel ID'] = hex(data[14])
+            self.dictionary['Panel ID'] = data[14]
             self.dictionary['Circuit ID'] = data[15]
 
         self.dictionary['_meta'] = {
             'received_time': datetime.utcnow().isoformat(),
-            'gateway_id': '1',
+            'gateway_id': gateway_id,
             'receiver': 'cc2538',
             'device_id': device_id
         }
@@ -128,7 +131,7 @@ class triumvi(object):
         #     timeStamp.hour, timeStamp.minute, timeStamp.second))
         newPacket = triumviPacket(data)
         if newPacket:
-            newPacket.addTimeStamp(timeStamp)
+            # newPacket.addTimeStamp(timeStamp)
             self.callback(newPacket)
             self.blueLed.leds_off()
             self.resetCount = 0
