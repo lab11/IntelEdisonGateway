@@ -4,10 +4,14 @@
 # is this so hard.
 import sys
 sys.path.append('/usr/local/lib/python2.7/site-packages')
+import os
 
 # System dependencies
 import time
 import json
+
+# Restart this when it breaks
+import watchdog
 
 # Library for getting data from the CC2538/Triumvi
 import triumvi
@@ -18,12 +22,19 @@ import paho.mqtt.client as mqtt
 
 # Called on every packet from the Triumvi
 def callback (pkt):
+	watchdog.reset()
 	try:
-	    json_pkt = json.dumps(pkt.dictionary)
-	    client.publish('gateway-data', json_pkt)
+		json_pkt = json.dumps(pkt.dictionary)
+		client.publish('gateway-data', json_pkt)
 	except Exception as e:
 		print('Error in callback with Triumvi packet')
 		print(e);
+
+def watchdog_handler ():
+	print("Watchdog expired. Haven't gotten a packet in a while.")
+	os._exit(1)
+
+watchdog = watchdog.Watchdog(60, watchdog_handler)
 
 # Connect to the local MQTT broker
 client = mqtt.Client()
