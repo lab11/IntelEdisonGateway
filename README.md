@@ -2,7 +2,10 @@
 A gateway design based on Intel Edison, which features two 802.15.4
 radios, Ethernet controller, micro SD slot, built-in Wifi and BLE radios.
 
-![alt text][edison_front]
+
+
+<img src="https://raw.githubusercontent.com/lab11/IntelEdisonGateway/master/images/edison_front.png" alt="Gateway Edison" width="25%;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+<img src="https://raw.githubusercontent.com/lab11/IntelEdisonGateway/master/images/edison_case_1000x629.jpg" alt="Gateway Edison" width="35%;">
 
 [LGSInnovations](https://github.com/LGSInnovations/Edison-Ethernet) has great
 documentation of how to use LAN9512 on ubilinux.
