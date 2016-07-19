@@ -33,7 +33,7 @@ class triumviPacket(object):
         self._AES_PKT_ID = 120
         self._DISPLAYORDER = \
         ['Packet Type', 'Source Addr', 'Power', \
-        'External Voltage Supply', 'Battery Pack Attached', 'Three Phase Unit'\
+        'External Voltage Waveform', 'Battery Pack Attached', 'Three Phase Unit'\
         'Frame Write', 'Panel ID', 'Circuit ID']
 
         if data[0] == self._TRIUMVI_PKT_ID:
@@ -48,7 +48,7 @@ class triumviPacket(object):
         self.dictionary['Power'] = (data[9] + (data[10]<<8) + (data[11]<<16) + (data[12]<<24))/1000
         if self.dictionary['Packet Type'] == 'Triumvi Packet':
             if data[13] & 128:
-                self.dictionary['External Voltage Supply'] = True
+                self.dictionary['External Voltage Waveform'] = True
             if data[13] & 64:
                 self.dictionary['Battery Pack Attached'] = True
             if data[13] & 48:
