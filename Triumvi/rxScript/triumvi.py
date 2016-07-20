@@ -33,7 +33,7 @@ class triumviPacket(object):
         self._AES_PKT_ID = 120
         self._DISPLAYORDER = \
         ['Packet Type', 'Source Addr', 'Power', \
-        'External Voltage Waveform', 'Battery Pack Attached', 'Three Phase Unit'\
+        'External Voltage Waveform', 'Battery Pack Attached', 'Three Phase Unit', \
         'Frame Write', 'Panel ID', 'Circuit ID']
 
         if data[0] == self._TRIUMVI_PKT_ID:
