@@ -10,7 +10,7 @@ import threading
 
 CC2538INTPINNUM = 38 # MRAA number, GP43
 CC2538RESETPINNUM = 51 # MRAA number, GP41
-MAX_TRIUMVI_PKT_LEN = 28 # maximum triumvi packet length
+MAX_TRIUMVI_PKT_LEN = 22 # maximum triumvi packet length
 MIN_TRIUMVI_PKT_LEN = 14 # minimum triumvi packet length
 MAX_FLUSH_THRESHOLD = 32 # maximum trials before reset cc2538
 
@@ -65,9 +65,9 @@ class triumviPacket(object):
             if data[13] & 8:
                 self.dictionary['Fram Write'] = True
             if data[13] & 4:
-                self.dictionary['Power Factor'] = unpack(data[offset:offset+4])/1000
-                self.dictionary['VRMS'] = unpack(data[offset+4:offset+8])/1000
-                self.dictionary['IRMS'] = unpack(data[offset+8:offset+12])/1000
+                self.dictionary['Power Factor'] = unpack(data[offset:offset+2]+[0,0])/1000
+                self.dictionary['VRMS'] = unpack(data[offset+2:offset+4]+[0,0])
+                self.dictionary['IRMS'] = unpack(data[offset+4:offset+6]+[0,0])/1000
 
         self.dictionary['_meta'] = {
             'received_time': datetime.utcnow().isoformat(),
