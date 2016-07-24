@@ -39,7 +39,7 @@ class triumviPacket(object):
         self._DISPLAYORDER = \
         ['Packet Type', 'Source Addr', 'Power', \
         'External Voltage Waveform', 'Battery Pack Attached', 'Three Phase Unit', \
-        'Frame Write', 'Panel ID', 'Circuit ID', 'Power Factor', 'VRMS', 'IRMS']
+        'Frame Write', 'Panel ID', 'Circuit ID', 'Power Factor', 'VRMS', 'IRMS', 'INA Gain']
 
         if data[0] == self._TRIUMVI_PKT_ID:
             self.dictionary['Packet Type'] = 'Triumvi Packet'
@@ -66,8 +66,9 @@ class triumviPacket(object):
                 self.dictionary['Fram Write'] = True
             if data[13] & 4:
                 self.dictionary['Power Factor'] = unpack(data[offset:offset+2]+[0,0])/1000
-                self.dictionary['VRMS'] = unpack(data[offset+2:offset+4]+[0,0])
+                self.dictionary['VRMS'] = data[offset+2]
                 self.dictionary['IRMS'] = unpack(data[offset+4:offset+6]+[0,0])/1000
+                self.dictionary['INA Gain'] = data[offset+3]
 
         self.dictionary['_meta'] = {
             'received_time': datetime.utcnow().isoformat(),
