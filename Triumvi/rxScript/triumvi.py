@@ -10,7 +10,7 @@ import threading
 
 CC2538INTPINNUM = 38 # MRAA number, GP43
 CC2538RESETPINNUM = 51 # MRAA number, GP41
-MAX_TRIUMVI_PKT_LEN = 28 # maximum triumvi packet length
+MAX_TRIUMVI_PKT_LEN = 22 # maximum triumvi packet length
 MIN_TRIUMVI_PKT_LEN = 14 # minimum triumvi packet length
 MAX_FLUSH_THRESHOLD = 32 # maximum trials before reset cc2538
 
@@ -39,7 +39,7 @@ class triumviPacket(object):
         self._DISPLAYORDER = \
         ['Packet Type', 'Source Addr', 'Power', \
         'External Voltage Waveform', 'Battery Pack Attached', 'Three Phase Unit', \
-        'Frame Write', 'Panel ID', 'Circuit ID', 'Power Factor', 'VRMS', 'IRMS']
+        'Frame Write', 'Panel ID', 'Circuit ID', 'Power Factor', 'VRMS', 'IRMS', 'INA Gain']
 
         if data[0] == self._TRIUMVI_PKT_ID:
             self.dictionary['Packet Type'] = 'Triumvi Packet'
@@ -65,9 +65,10 @@ class triumviPacket(object):
             if data[13] & 8:
                 self.dictionary['Fram Write'] = True
             if data[13] & 4:
-                self.dictionary['Power Factor'] = unpack(data[offset:offset+4])/1000
-                self.dictionary['VRMS'] = unpack(data[offset+4:offset+8])/1000
-                self.dictionary['IRMS'] = unpack(data[offset+8:offset+12])/1000
+                self.dictionary['Power Factor'] = unpack(data[offset:offset+2]+[0,0])/1000
+                self.dictionary['VRMS'] = data[offset+2]
+                self.dictionary['IRMS'] = unpack(data[offset+4:offset+6]+[0,0])/1000
+                self.dictionary['INA Gain'] = data[offset+3]
 
         self.dictionary['_meta'] = {
             'received_time': datetime.utcnow().isoformat(),
