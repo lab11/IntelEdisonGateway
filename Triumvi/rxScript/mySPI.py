@@ -8,6 +8,7 @@ class mySPI(object):
         self.cs.write(1)
         self.spi.frequency(2000000) # 2 MHz
         self.spi.mode(mraa.SPI_MODE3)
+        self._WRITE_MAX = 20
         # first write a dummy byte
         self.spi.writeByte(0)
     
@@ -28,6 +29,9 @@ class mySPI(object):
         data = bytearray(data)
         self.spi.writeByte(0)
         self.cs.write(0)
-        miso = self.spi.write(data)
+        miso = []
+        for i in range(0, len(data), self._WRITE_MAX):
+            miso_sub = self.spi.write(data[i:min(i+self._WRITE_MAX, len(data))])
+            miso += miso_sub
         self.cs.write(1)
         return list(miso)
