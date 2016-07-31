@@ -1,12 +1,6 @@
 
 from Crypto.Cipher import AES
 
-# A valid packet should look like:
-# 2 Bytes Frame control field (FCF)
-# 1 Byte sequence number
-# Address
-# payload
-
 # This function only tries to decrypt a triumvi packet
 # The valid Triumvi payload should look like:
 # 1 byte ID: 0xa0
@@ -30,9 +24,9 @@ def triumviDecrypt(key, srcAddr, payload):
     try:
         cipher.verify(mic)
         plaintext = [ord(i) for i in plaintext]
-        print('Decrypt success!')
+        #print('Decrypt success!')
         return plaintext
     except ValueError:
-        print('Decrypt failed!')
+        #print('Decrypt failed!')
         return None
 

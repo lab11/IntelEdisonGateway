@@ -2,92 +2,29 @@
 from mySPI import mySPI
 from edisonLED import edisonLED
 from time import sleep
-import uuid
 import mraa
-from datetime import datetime
+from parsePacket import *
+from triumviDecrypt import triumviDecrypt
+from triumviPacketFormatter import *
 
 import threading
 
 CC2538INTPINNUM = 38 # MRAA number, GP43
 CC2538RESETPINNUM = 51 # MRAA number, GP41
-MAX_TRIUMVI_PKT_LEN = 22 # maximum triumvi packet length
+MAX_TRIUMVI_PKT_LEN = 50 # maximum triumvi packet length
 MIN_TRIUMVI_PKT_LEN = 14 # minimum triumvi packet length
 MAX_FLUSH_THRESHOLD = 32 # maximum trials before reset cc2538
+TRIUMVI_PACKET_ID = 160 # triumvi packet ID
 
-gateway_id = ':'.join(['{:02x}'.format((uuid.getnode() >> i) & 0xff) for i in range(0,8*6,8)][::-1])
-
+KEY = ['0x46', '0xe2', '0xe5', '0x28', '0x9a', '0x65', '0x3c', '0xe9', '0x0', '0x2f', '0xc1', '0x6e', '0x65', '0xee', '0xc', '0x3e']
 
 condition = threading.Condition()
-
-def unpack(data):
-    return float(data[0] + (data[1]<<8) + (data[2]<<16) + (data[3]<<24))
-
-# 1 sign bit, 8 exp, 23 fraction
 
 def triumviCallBackISR(args):
     # args.cc2538ISR()
     condition.acquire()
     condition.notify()
     condition.release()
-
-class triumviPacket(object):
-    def __init__(self, data):
-        self.dictionary = {}
-
-        self._TRIUMVI_PKT_ID = 160
-        self._AES_PKT_ID = 120
-        self._DISPLAYORDER = \
-        ['Packet Type', 'Source Addr', 'Power', \
-        'External Voltage Waveform', 'Battery Pack Attached', 'Three Phase Unit', \
-        'Frame Write', 'Panel ID', 'Circuit ID', 'Power Factor', 'VRMS', 'IRMS', 'INA Gain']
-
-        if data[0] == self._TRIUMVI_PKT_ID:
-            self.dictionary['Packet Type'] = 'Triumvi Packet'
-        elif data[0] == self._AES_PKT_ID:
-            self.dictionary['Packet Type'] = 'Old Triumvi Packet'
-        else:
-            return None
-
-        # self.dictionary['Source Addr'] = [hex(i) for i in data[1:9]]
-        device_id = ''.join(['{:02x}'.format(i) for i in data[1:9]])
-        self.dictionary['Power'] = unpack(data[9:13])/1000
-        offset = 14
-        if self.dictionary['Packet Type'] == 'Triumvi Packet':
-            if data[13] & 128:
-                self.dictionary['External Voltage Waveform'] = True
-            if data[13] & 64:
-                self.dictionary['Battery Pack Attached'] = True
-                self.dictionary['Panel ID'] = data[offset]
-                self.dictionary['Circuit ID'] = data[offset+1]
-                offset += 2
-            if data[13] & 48:
-                self.dictionary['Three Phase Unit'] = True
-            if data[13] & 8:
-                self.dictionary['Fram Write'] = True
-            if data[13] & 4:
-                self.dictionary['Power Factor'] = unpack(data[offset:offset+2]+[0,0])/1000
-                self.dictionary['VRMS'] = data[offset+2]
-                self.dictionary['IRMS'] = unpack(data[offset+4:offset+6]+[0,0])/1000
-                self.dictionary['INA Gain'] = data[offset+3]
-
-        self.dictionary['_meta'] = {
-            'received_time': datetime.utcnow().isoformat(),
-            'gateway_id': gateway_id,
-            'receiver': 'cc2538',
-            'device_id': device_id
-        }
-        self.dictionary['device'] = 'Triumvi'
-
-    def addTimeStamp(self, timeStamp):
-        self.dictionary['Time Stamp'] = {\
-            'Year':timeStamp.year, \
-            'Month':timeStamp.month, \
-            'Day:':timeStamp.day, \
-            'Hour':timeStamp.hour, \
-            'Minute':timeStamp.minute, \
-            'Second':timeStamp.second }
-
-
 
 class triumvi(object):
     def __init__(self, callback):
@@ -140,10 +77,17 @@ class triumvi(object):
         # print('Time Stamp: {0}, {1:02d}/{2:02d}, {3:02d}:{4:02d}:{5:02d}'.\
         #     format(timeStamp.year, timeStamp.month, timeStamp.day,\
         #     timeStamp.hour, timeStamp.minute, timeStamp.second))
-        newPacket = triumviPacket(data)
-        if newPacket:
-            # newPacket.addTimeStamp(timeStamp)
-            self.callback(newPacket)
+        #newPacket = triumviPacket(data)
+        #if newPacket:
+        #    self.callback(newPacket)
+        #    self.blueLed.leds_off()
+        #    self.resetCount = 0
+        newPacket = packet(data)
+        if newPacket.dictionary['payload'][0] == TRIUMVI_PACKET_ID:
+            decrypted_data = triumviDecrypt(KEY, newPacket.dictionary['src_address'], newPacket.dictionary['payload'])
+        if decrypted_data:
+            newPacketFormatted = triumviPacket([TRIUMVI_PACKET_ID] + newPacket.dictionary['src_address'] + decrypted_data)
+            self.callback(newPacketFormatted)
             self.blueLed.leds_off()
             self.resetCount = 0
 
