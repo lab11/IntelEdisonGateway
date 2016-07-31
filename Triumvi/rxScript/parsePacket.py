@@ -10,7 +10,8 @@ class packet(object):
         # 2 --> ACK
         # 3 --> MAC command
         # 4~7 --> Reserved
-        self.dictionary['frame_type'] = data[0] & 3
+        frameDict = {0:'Beacon', 1:'Data', 2:'ACK', 3:'MAC Command'}
+        self.dictionary['frame_type'] = frameDict.get(data[0] & 3, 'Reserved')
         self.dictionary['security_enable'] = True if (data[0] & 8)>0 else False
         self.dictionary['frame_pending'] = True if (data[0] & 16)>0 else False
         self.dictionary['ack_request'] = True if (data[0] & 32)>0 else False
