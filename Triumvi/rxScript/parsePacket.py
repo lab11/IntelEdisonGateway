@@ -29,6 +29,8 @@ class packet(object):
         elif self.dictionary['dest_addr_mode'] == 3:
             dest_PAN_ID_len = 2
             dest_addr_len = 8
+        else:
+            return None
         
         if self.dictionary['src_addr_mode'] == 0:
             src_PAN_ID_len = 0
@@ -39,6 +41,8 @@ class packet(object):
         elif self.dictionary['src_addr_mode'] == 3:
             src_PAN_ID_len = 2
             src_addr_len = 8
+        else:
+            return None
         
         if dest_PAN_ID_len > 0:
             self.dictionary['dest_PAN_ID'] = data[3:5][::-1]

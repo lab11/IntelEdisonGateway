@@ -83,13 +83,13 @@ class triumvi(object):
         #    self.blueLed.leds_off()
         #    self.resetCount = 0
         newPacket = packet(data)
-        if newPacket.dictionary['payload'][0] == TRIUMVI_PACKET_ID:
+        if newPacket and newPacket.dictionary['payload'][0] == TRIUMVI_PACKET_ID:
             decrypted_data = triumviDecrypt(KEY, newPacket.dictionary['src_address'], newPacket.dictionary['payload'])
-        if decrypted_data:
-            newPacketFormatted = triumviPacket([TRIUMVI_PACKET_ID] + newPacket.dictionary['src_address'] + decrypted_data)
-            self.callback(newPacketFormatted)
-            self.blueLed.leds_off()
-            self.resetCount = 0
+            if decrypted_data:
+                newPacketFormatted = triumviPacket([TRIUMVI_PACKET_ID] + newPacket.dictionary['src_address'] + decrypted_data)
+                self.callback(newPacketFormatted)
+                self.blueLed.leds_off()
+                self.resetCount = 0
 
     def flushCC2538TXFIFO(self):
         self.redLed.leds_on()
