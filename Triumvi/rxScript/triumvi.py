@@ -16,6 +16,13 @@ MIN_TRIUMVI_PKT_LEN = 14 # minimum triumvi packet length
 MAX_FLUSH_THRESHOLD = 32 # maximum trials before reset cc2538
 TRIUMVI_PACKET_ID = 160 # triumvi packet ID
 
+# Controlling APS3B12 
+import socket
+HOST = '127.0.0.1'
+PORT = 4908
+APS3B12_PACKET_ID = 31 # APS control packet ID
+# end of controlling APS3B12
+
 KEY = ['0x46', '0xe2', '0xe5', '0x28', '0x9a', '0x65', '0x3c', '0xe9', '0x0', '0x2f', '0xc1', '0x6e', '0x65', '0xee', '0xc', '0x3e']
 
 condition = threading.Condition()
@@ -90,6 +97,17 @@ class triumvi(object):
                 self.callback(newPacketFormatted)
                 self.blueLed.leds_off()
                 self.resetCount = 0
+        # APS3B12 control packet
+        elif newPacket and newPacket.dictionary['payload'][0] == APS3B12_PACKET_ID and len(newPacket.dictionary['payload'])==4:
+            skt = socket.socket()
+            try:
+                skt.connect((HOST, PORT))
+                myPayload = " ".join(str(x) for x in newPacket.dictionary['payload'])
+                skt.send(myPayload)
+                skt.close()
+            except:
+                pass
+        # end of APS3B12 control
 
     def flushCC2538TXFIFO(self):
         self.redLed.leds_on()
