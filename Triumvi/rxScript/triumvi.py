@@ -19,7 +19,7 @@ TRIUMVI_PACKET_ID = 160 # triumvi packet ID
 # Controlling APS3B12 
 import socket
 HOST = '127.0.0.1'
-PORT = 4908
+PORT = 4909
 APS3B12_PACKET_ID = 31 # APS control packet ID
 # end of controlling APS3B12
 
