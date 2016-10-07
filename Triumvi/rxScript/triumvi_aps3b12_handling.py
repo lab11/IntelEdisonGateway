@@ -59,7 +59,7 @@ def main():
                     dest_skt.send('off')
                     mydevice.state = 'off'
             elif cmd[1] == APS3B12_SET_CURRENT:
-                currentVal = (int(cmd[2])*256 + int(cmd[3]))/1000
+                currentVal = float(int(cmd[2])*256 + int(cmd[3]))/1000
                 if mydevice.currentVal != currentVal and currentVal <= MAX_CURRENT_AVAIABLE:
                     dest_skt.send('amp='+str(currentVal))
                     mydevice.currentVal = currentVal
