@@ -60,10 +60,10 @@ def main():
 
             print('Command received: {:}'.format(cmd))
             if cmd[1] == APS3B12_ENABLE:
-                if cmd[2] == 1:
+                if cmd[2] == 1 and mydevice.staate == 'off':
                     dest_skt.send('on')
                     mydevice.state = 'on'
-                else:
+                elif cmd[2] == 0 and mydevice.state == 'on':
                     dest_skt.send('off')
                     mydevice.state = 'off'
             elif cmd[1] == APS3B12_SET_CURRENT and mydevice.state == 'on':
