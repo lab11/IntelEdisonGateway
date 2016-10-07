@@ -1,6 +1,8 @@
 
 
 import socket
+import sys
+import signal
 
 LOCAL_HOST = '127.0.0.1'
 LOCAL_PORT = 4909
@@ -35,6 +37,12 @@ def main():
     except:
         print('cannot connect to remote server\r\n')
         raise
+
+    def signal_handler(signal, frame):
+        print('You pressed Ctrl+C!')
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, signal_handler)
 
     mydevice = aps3b12_state()
 
