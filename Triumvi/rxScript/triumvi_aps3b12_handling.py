@@ -58,16 +58,19 @@ def main():
             except:
                 break
 
-            print('Command received: {:}'.format(cmd))
+            print("Command Received\r\n")
             if cmd[1] == APS3B12_ENABLE:
                 if cmd[2] == 1 and mydevice.state == 'off':
+                    print("Turn on the load\r\n")
                     dest_skt.send('on')
                     mydevice.state = 'on'
                 elif cmd[2] == 0 and mydevice.state == 'on':
+                    print("Turn off the load\r\n")
                     dest_skt.send('off')
                     mydevice.state = 'off'
             elif cmd[1] == APS3B12_SET_CURRENT and mydevice.state == 'on':
                 currentVal = float(int(cmd[2])*256 + int(cmd[3]))/1000
+                print("Set load current to: {:}\r\n".format(currentVal))
                 if mydevice.currentVal != currentVal and currentVal <= MAX_CURRENT_AVAIABLE:
                     dest_skt.send('amp='+str(currentVal))
                     mydevice.currentVal = currentVal
