@@ -108,6 +108,13 @@ class triumvi(object):
             except:
                 pass
         # end of APS3B12 control
+        elif newPacket and newPacket.dictionary['payload'][0] == 63:
+            print('Calibration coefficient: {:}'.format(newPacket.dictionary['payload'][1:]))
+            myFile = open('calibration_coef.txt', 'a')
+            myFile.write('From: {:}'.format(newPacket.dictionary['src_address']))
+            myFile.write('Data: {:}'.format(newPacket.dictionary['payload'][1:]))
+            myFile.write('\r\n')
+            myFile.close()
 
     def flushCC2538TXFIFO(self):
         self.redLed.leds_on()
