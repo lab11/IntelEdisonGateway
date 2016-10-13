@@ -82,7 +82,7 @@ def main():
                 currentVal = float(int(cmd[2])*256 + int(cmd[3]))/1000
                 if mydevice.currentVal != currentVal and currentVal <= MAX_CURRENT_AVAIABLE:
                     print("Set load current to: {:}".format(currentVal))
-                    if currentVal - mydevice.currentVal > 250:
+                    if currentVal - mydevice.currentVal > 0.25:
                         warn_skt.send('Warning, inconsistent increase')
                     dest_skt.send('amp='+str(currentVal))
                     mydevice.currentVal = currentVal
