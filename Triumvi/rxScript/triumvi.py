@@ -15,17 +15,30 @@ MAX_TRIUMVI_PKT_LEN = 50 # maximum triumvi packet length
 MIN_TRIUMVI_PKT_LEN = 14 # minimum triumvi packet length
 MAX_FLUSH_THRESHOLD = 32 # maximum trials before reset cc2538
 TRIUMVI_PACKET_ID = 160 # triumvi packet ID
-
 # Controlling APS3B12 
 import socket
-HOST = '127.0.0.1'
-PORT = 4909
+HOST = 'lab11power.ddns.net'
+PORT = 4908
 APS3B12_PACKET_ID = 31 # APS control packet ID
+APS3B12_ENABLE = 1
+APS3B12_SET_CURRENT = 2
+APS3B12_READ_CURRENT = 0
+APS3B12_READ = 3
+APS3B12_CURRENT_INFO = 3
 # end of controlling APS3B12
+
 
 KEY = ['0x46', '0xe2', '0xe5', '0x28', '0x9a', '0x65', '0x3c', '0xe9', '0x0', '0x2f', '0xc1', '0x6e', '0x65', '0xee', '0xc', '0x3e']
 
 condition = threading.Condition()
+
+class aps3b12_state(object):
+    def __init__(self):
+        self.state = 'off'
+        self.currentVal = 0
+
+myDevice = aps3b12_state()
+
 
 def triumviCallBackISR(args):
     # args.cc2538ISR()
@@ -56,6 +69,7 @@ class triumvi(object):
         self._SPI_MASTER_GET_DATA = 2
         self._SPI_MASTER_RADIO_ON = 3
         self._SPI_MASTER_RADIO_OFF = 4
+        self._SPI_RF_PACKET_SEND = 5
 
         condition.acquire()
         while True:
@@ -95,19 +109,49 @@ class triumvi(object):
             if decrypted_data:
                 newPacketFormatted = triumviPacket([TRIUMVI_PACKET_ID] + newPacket.dictionary['src_address'] + decrypted_data)
                 self.callback(newPacketFormatted)
-                self.blueLed.leds_off()
                 self.resetCount = 0
         # APS3B12 control packet
         elif newPacket and newPacket.dictionary['payload'][0] == APS3B12_PACKET_ID and len(newPacket.dictionary['payload'])==4:
             skt = socket.socket()
             try:
                 skt.connect((HOST, PORT))
-                myPayload = " ".join(str(x) for x in newPacket.dictionary['payload'])
-                skt.send(myPayload)
+                if newPacket.dictionary['payload'][1] == APS3B12_ENABLE:
+                    if myDevice.state == 'off' and newPacket.dictionary['payload'][2] == 1:
+                        skt.send('on')
+                        myDevice.state = 'on'
+                    elif myDevice.state == 'on' and newPacket.dictionary['payload'][2] == 0:
+                        skt.send('off')
+                        myDevice.state = 'off'
+                elif newPacket.dictionary['payload'][1] == APS3B12_SET_CURRENT:
+                    currentVal = float(int(newPacket.dictionary['payload'][2])*256 + int(newPacket.dictionary['payload'][3]))/1000
+                    if currentVal != myDevice.currentVal:
+                        print('current setting: {:}'.format(myDevice.currentVal))
+                        print("Set load current to: {:}".format(currentVal))
+                        skt.send('amp='+str(currentVal))
+                        myDevice.currentVal = currentVal
+                elif newPacket.dictionary['payload'][1] == APS3B12_READ:
+                    if newPacket.dictionary['payload'][2] == APS3B12_READ_CURRENT:
+                        skt.send('readI')
+                        value = skt.recv(1024).strip()
+                        try:
+                            value = float(value)
+                        except:
+                            value = None
+                        if value:
+                            print('Read Current: {:}'.format(value))
+                            myDevice.currentVal == value
+                            value = int(value*1000)
+                            value_arr = []
+                            for i in range(4):
+                                value_arr.append(value%256)
+                                value /= 256
+                            dataout = [self._SPI_RF_PACKET_SEND, 7, APS3B12_PACKET_ID, APS3B12_CURRENT_INFO]+value_arr[::-1]
+                            dummy = self.cc2538Spi.write(dataout)
                 skt.close()
             except:
                 pass
-        # end of APS3B12 control
+        self.blueLed.leds_off()
+            
 
     def flushCC2538TXFIFO(self):
         self.redLed.leds_on()
