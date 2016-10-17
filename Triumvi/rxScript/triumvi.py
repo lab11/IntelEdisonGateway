@@ -125,7 +125,6 @@ class triumvi(object):
                 elif newPacket.dictionary['payload'][1] == APS3B12_SET_CURRENT:
                     currentVal = float(int(newPacket.dictionary['payload'][2])*256 + int(newPacket.dictionary['payload'][3]))/1000
                     if currentVal != myDevice.currentVal:
-                        print('current setting: {:}'.format(myDevice.currentVal))
                         print("Set load current to: {:}".format(currentVal))
                         skt.send('amp='+str(currentVal))
                         myDevice.currentVal = currentVal
@@ -139,7 +138,7 @@ class triumvi(object):
                             value = None
                         if value:
                             print('Read Current: {:}'.format(value))
-                            myDevice.currentVal == value
+                            myDevice.currentVal = value
                             value = int(value*1000)
                             value_arr = []
                             for i in range(4):
