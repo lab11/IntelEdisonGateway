@@ -120,12 +120,16 @@ class triumvi(object):
                         skt.send('on')
                         skt.close()
                         myDevice.state = 'on'
+                    except:
+                        pass
                 elif myDevice.state == 'on' and newPacket.dictionary['payload'][2] == 0:
                     try:
                         skt.connect((HOST, PORT))
                         skt.send('off')
                         skt.close()
                         myDevice.state = 'off'
+                    except:
+                        pass
             elif newPacket.dictionary['payload'][1] == APS3B12_SET_CURRENT:
                 currentVal = float(int(newPacket.dictionary['payload'][2])*256 + int(newPacket.dictionary['payload'][3]))/1000
                 if currentVal != myDevice.currentVal:
@@ -135,12 +139,16 @@ class triumvi(object):
                         skt.send('amp='+str(currentVal))
                         skt.close()
                         myDevice.currentVal = currentVal
+                    except:
+                        pass
             elif newPacket.dictionary['payload'][1] == APS3B12_READ:
                 if newPacket.dictionary['payload'][2] == APS3B12_READ_CURRENT:
                     try:
                         skt.send('readI')
                         value = skt.recv(1024).strip()
                         skt.close()
+                    except:
+                        pass
                     try:
                         value = float(value)
                     except:
