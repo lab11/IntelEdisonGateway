@@ -113,56 +113,42 @@ class triumvi(object):
         # APS3B12 control packet
         elif newPacket and newPacket.dictionary['payload'][0] == APS3B12_PACKET_ID and len(newPacket.dictionary['payload'])==4:
             skt = socket.socket()
-            if newPacket.dictionary['payload'][1] == APS3B12_ENABLE:
-                if myDevice.state == 'off' and newPacket.dictionary['payload'][2] == 1:
-                    try:
-                        skt.connect((HOST, PORT))
+            try:
+                skt.connect((HOST, PORT))
+                if newPacket.dictionary['payload'][1] == APS3B12_ENABLE:
+                    if myDevice.state == 'off' and newPacket.dictionary['payload'][2] == 1:
                         skt.send('on')
-                        skt.close()
                         myDevice.state = 'on'
-                    except:
-                        pass
-                elif myDevice.state == 'on' and newPacket.dictionary['payload'][2] == 0:
-                    try:
-                        skt.connect((HOST, PORT))
+                    elif myDevice.state == 'on' and newPacket.dictionary['payload'][2] == 0:
                         skt.send('off')
-                        skt.close()
                         myDevice.state = 'off'
-                    except:
-                        pass
-            elif newPacket.dictionary['payload'][1] == APS3B12_SET_CURRENT:
-                currentVal = float(int(newPacket.dictionary['payload'][2])*256 + int(newPacket.dictionary['payload'][3]))/1000
-                if currentVal != myDevice.currentVal:
-                    print("Set load current to: {:}".format(currentVal))
-                    try:
-                        skt.connect((HOST, PORT))
+                elif newPacket.dictionary['payload'][1] == APS3B12_SET_CURRENT:
+                    currentVal = float(int(newPacket.dictionary['payload'][2])*256 + int(newPacket.dictionary['payload'][3]))/1000
+                    if currentVal != myDevice.currentVal:
+                        print("Set load current to: {:}".format(currentVal))
                         skt.send('amp='+str(currentVal))
-                        skt.close()
                         myDevice.currentVal = currentVal
-                    except:
-                        pass
-            elif newPacket.dictionary['payload'][1] == APS3B12_READ:
-                if newPacket.dictionary['payload'][2] == APS3B12_READ_CURRENT:
-                    try:
+                elif newPacket.dictionary['payload'][1] == APS3B12_READ:
+                    if newPacket.dictionary['payload'][2] == APS3B12_READ_CURRENT:
                         skt.send('readI')
                         value = skt.recv(1024).strip()
-                        skt.close()
-                    except:
-                        pass
-                    try:
-                        value = float(value)
-                    except:
-                        value = None
-                    if value:
-                        print('Read Current: {:}'.format(value))
-                        myDevice.currentVal = value
-                        value = int(value*1000)
-                        value_arr = []
-                        for i in range(4):
-                            value_arr.append(value%256)
-                            value /= 256
-                        dataout = [self._SPI_RF_PACKET_SEND, 7, APS3B12_PACKET_ID, APS3B12_CURRENT_INFO]+value_arr[::-1]
-                        dummy = self.cc2538Spi.write(dataout)
+                        try:
+                            value = float(value)
+                        except:
+                            value = None
+                        if value:
+                            print('Read Current: {:}'.format(value))
+                            myDevice.currentVal = value
+                            value = int(value*1000)
+                            value_arr = []
+                            for i in range(4):
+                                value_arr.append(value%256)
+                                value /= 256
+                            dataout = [self._SPI_RF_PACKET_SEND, 7, APS3B12_PACKET_ID, APS3B12_CURRENT_INFO]+value_arr[::-1]
+                            dummy = self.cc2538Spi.write(dataout)
+                skt.close()
+            except:
+                pass
         self.blueLed.leds_off()
             
 
