@@ -33,11 +33,15 @@ class le910_serial(object):
         self.read_buf = []
         self.buf_lock = False
         self.last_command = None
-        self._command_sets = {  'at':'AT\r\n', \
-                                'start_location_service':'AT$GPSSLSR=2,3,,,,,1\r\n', \
-                                'stop_location_service':'AT$GPSSTOP=1\r\n', \
-                                'unsolicited_nmea_data':'AT$GPSNMUN=3,1,0,0,0,0,0\r\n', \
-                                'stop_unsolicited_nmea_data':'+++'} # no new line for this command
+        self._command_sets = {\
+            'at'                        :'AT\r\n', \
+            'shutdown'                  :'AT#shdn\r\n', \
+            'start_location_service'    :'AT$GPSSLSR=2,3,,,,,1\r\n', \
+            'stop_location_service'     :'AT$GPSSTOP=1\r\n', \
+            'unsolicited_nmea_data'     :'AT$GPSNMUN=3,1,0,0,0,0,0\r\n', \
+            'stop_unsolicited_nmea_data':'+++', \
+            'gps_acquired_position'     :'AT$GPSACP\r\n' \
+        }
 
     def data_available(self):
         return len(self.read_buf) != 0
