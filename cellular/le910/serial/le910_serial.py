@@ -2,9 +2,59 @@
 import serial
 import time
 import threading
+import datetime
 
 SERIALPORT = '/dev/ttyUSB3'
 BAUDRATE = 115200
+        
+class latitude(object):
+    # format should be ddmm.mmmmN/S
+    def __init__(self, latitude_string):
+        self.degree = int(latitude_string[0:2])
+        self.minute = int(latitude_string[2:4])
+        self.second = int(round(float(latitude_string[5:9])/1000*60))
+        self.NS = latitude_string[-1]
+    def __str__(self):
+        return '{:} Degree: {:}, Minute: {:}, Second: {:}'.\
+            format(self.NS, self.degree, self.minute, self.second)
+
+class longitude(object):
+    # format should be dddmm.mmmmE/W
+    def __init__(self, longititude_string):
+        self.degree = int(latitude_string[0:3])
+        self.minute = int(latitude_string[3:5])
+        self.second = int(round(float(latitude_string[6:10])/1000*60))
+        self.EW = latitude_string[-1]
+    def __str__(self):
+        return '{:} Degree: {:}, Minute: {:}, Second: {:}'.\
+            format(self.EW, self.degree, self.minute, self.second)
+
+class gps_info(object):
+    def __init__(self, gpsacp_string):
+        tmp = gpsacp_string[8:].split(',')
+        if len(tmp) > 1 and int(tmp[5])>1:
+            self.gps_acquired = True
+            self.utc_time = datetime.datetime.strptime(tmp[0][:tmp[0].index('.')], "%H%M%S").time()
+            self.lat = latitude(tmp[1])
+            self.lon = longitude(tmp[2])
+            self.alt = float(tmp[4])
+            self.speed = float(tmp[7]) # unit is km/h
+            self.date = datetime.datetime.strptime(tmp[9], "%d%m%y").date()
+            self.num_sat = int(tmp[10])
+        else:
+            self.gps_acquired = False
+    def __str__(self):
+        if self.gps_acquired:
+            return 'Date: {:}\r\n\
+                    UTC time: {:}\r\n\
+                    Latitude: {:}\r\n\
+                    Longitude: {:}\r\n\
+                    Altitude: {:} (m)\r\n\
+                    Speed: {:} (km/h)\r\n'.\
+                    format(self.date, self.utc_time, self.lat, self.lon,\
+                        self.alt, self.speed)
+        else:
+            return 'GPS location not available\r\n'
 
 class le910_serial(object):
     def __init__(self):
@@ -56,6 +106,18 @@ class le910_serial(object):
             return tmp
         else:
             return None
+
+    def get_data_block(self):
+        while not self.data_available():
+            time.sleep(0.1)
+        return self.get_data()
+
+    def clear_data_buf(self):
+        while self.buf_lock:
+            pass
+        self.buf_lock = True
+        del self.read_buf[:]
+        self.buf_lock = False
 
     def write(self, cmd):
         cmd = cmd.lower()
