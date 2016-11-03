@@ -4,7 +4,8 @@ import time
 import threading
 import datetime
 
-SERIALPORT = '/dev/ttyUSB3'
+#SERIALPORT = '/dev/ttyUSB3'
+SERIALPORT = '/dev/tty.usbserial-AH02VOLK'
 BAUDRATE = 115200
         
 class latitude(object):
@@ -12,7 +13,7 @@ class latitude(object):
     def __init__(self, latitude_string):
         self.degree = int(latitude_string[0:2])
         self.minute = int(latitude_string[2:4])
-        self.second = int(round(float(latitude_string[5:9])/1000*60))
+        self.second = int(round(float(latitude_string[5:9])/10000*60))
         self.NS = latitude_string[-1]
     def __str__(self):
         return '{:} Degree: {:}, Minute: {:}, Second: {:}'.\
@@ -21,10 +22,10 @@ class latitude(object):
 class longitude(object):
     # format should be dddmm.mmmmE/W
     def __init__(self, longititude_string):
-        self.degree = int(latitude_string[0:3])
-        self.minute = int(latitude_string[3:5])
-        self.second = int(round(float(latitude_string[6:10])/1000*60))
-        self.EW = latitude_string[-1]
+        self.degree = int(longititude_string[0:3])
+        self.minute = int(longititude_string[3:5])
+        self.second = int(round(float(longititude_string[6:10])/10000*60))
+        self.EW = longititude_string[-1]
     def __str__(self):
         return '{:} Degree: {:}, Minute: {:}, Second: {:}'.\
             format(self.EW, self.degree, self.minute, self.second)
@@ -34,7 +35,7 @@ class gps_info(object):
         tmp = gpsacp_string[8:].split(',')
         if len(tmp) > 1 and int(tmp[5])>1:
             self.gps_acquired = True
-            self.utc_time = datetime.datetime.strptime(tmp[0][:tmp[0].index('.')], "%H%M%S").time()
+            self.utc_time = datetime.datetime.strptime(tmp[0][1:7], "%H%M%S").time()
             self.lat = latitude(tmp[1])
             self.lon = longitude(tmp[2])
             self.alt = float(tmp[4])
@@ -90,7 +91,8 @@ class le910_serial(object):
             'stop_location_service'     :'AT$GPSSTOP=1\r\n', \
             'unsolicited_nmea_data'     :'AT$GPSNMUN=3,1,0,0,0,0,0\r\n', \
             'stop_unsolicited_nmea_data':'+++', \
-            'gps_acquired_position'     :'AT$GPSACP\r\n' \
+            'gps_acquired_position'     :'AT$GPSACP\r\n', \
+            'active_gps_antenna'        :'AT$GPSAT=1\r\n' \
         }
 
     def data_available(self):

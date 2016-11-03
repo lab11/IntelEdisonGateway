@@ -20,11 +20,15 @@ def main():
     le910.write('start_location_service')
     print (le910.get_data_block())
 
+    print('Set active GPS antenna...'),
+    le910.write('active_gps_antenna')
+    print (le910.get_data_block())
+
     print('Get unsolicited data... '),
     le910.write('unsolicited_nmea_data')
     print (le910.get_data_block())
 
-    trial = 10
+    trial = 1000
     gps_data_valid = False
 
     while (trial > 0) and (not gps_data_valid):
@@ -40,12 +44,12 @@ def main():
 
     print('Stop unsolicited data...')
     le910.write('stop_unsolicited_nmea_data')
-    time.sleep(1)
+    time.sleep(3)
     le910.clear_data_buf()
 
     if gps_data_valid:
         le910.write('gps_acquired_position')
-        gps_location = le910.gps_info(le910.get_data_block())
+        gps_location = le910_serial.gps_info(le910.get_data_block())
         print(gps_location)
         
 
