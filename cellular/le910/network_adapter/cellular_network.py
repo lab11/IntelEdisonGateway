@@ -11,8 +11,8 @@ def main():
     # check if syntax is valid
     if len(sys.argv) != 2 or (sys.argv[1] != 'start' and sys.argv[1] != 'stop'):
         print('Invalid syntax')
-        print('correct syntax: python cellular_network.py device start|stop')
-        print('Example: python cellular_network.py /dev/cdc-wdm0 start')
+        print('correct syntax: python cellular_network.py start|stop')
+        print('Example: python cellular_network.py start')
         sys.exit(0)
     op = sys.argv[1]
 
