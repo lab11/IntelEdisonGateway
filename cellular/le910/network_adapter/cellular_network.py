@@ -89,7 +89,7 @@ def main():
 
         # obtain IP address
         print('Acquiring IP address...')
-        sysout = subprocess.check_output(['udhcpc', '-i', ifname])
+        sysout = subprocess.call(['dhclient', ifname])
 
     elif op == 'stop':
         print('Stopping network...')
