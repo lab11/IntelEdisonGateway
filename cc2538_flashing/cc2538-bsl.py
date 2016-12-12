@@ -660,7 +660,7 @@ if __name__ == "__main__":
             ports = sorted(ports)
             '''
             # find FDTI device
-            ports = findTTY2.findFTDIDevice()
+            ports = findTTY2.findSerialDevice('ID_SERIAL=\'FTDI_')
 
             if ports:
                 # Found something - take it
