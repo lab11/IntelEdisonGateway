@@ -3,11 +3,12 @@ import serial
 import time
 import threading
 import datetime
+import findTTY2
 
 #SERIALPORT = '/dev/ttyUSB3'
-SERIALPORT = '/dev/tty.usbserial-AH02VOLK'
+#SERIALPORT = '/dev/tty.usbserial-AH02VOLK'
 BAUDRATE = 115200
-        
+
 class latitude(object):
     # format should be ddmm.mmmmN/S
     def __init__(self, latitude_string):
@@ -59,6 +60,10 @@ class gps_info(object):
 
 class le910_serial(object):
     def __init__(self):
+        SERIALPORT = findTTY2.findSerialDevice('MINOR=\'4\'')[0]
+        if not SERIALPORT:
+            print('cannot find serial device')
+            exit()
         self.ser = serial.Serial()
         self.ser.port = SERIALPORT
         self.ser.baudrate = BAUDRATE
