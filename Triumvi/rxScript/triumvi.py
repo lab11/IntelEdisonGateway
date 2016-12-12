@@ -35,7 +35,7 @@ condition = threading.Condition()
 class aps3b12_state(object):
     def __init__(self):
         self.state = 'off'
-        self.currentVal = 0
+        self.currentVal = 0.0
 
 myDevice = aps3b12_state()
 
@@ -104,14 +104,14 @@ class triumvi(object):
         #    self.blueLed.leds_off()
         #    self.resetCount = 0
         newPacket = packet(data)
-        if newPacket and newPacket.dictionary['payload'][0] == TRIUMVI_PACKET_ID:
+        if newPacket and 'payload' in newPacket.dictionary and newPacket.dictionary['payload'][0] == TRIUMVI_PACKET_ID:
             decrypted_data = triumviDecrypt(KEY, newPacket.dictionary['src_address'], newPacket.dictionary['payload'])
             if decrypted_data:
                 newPacketFormatted = triumviPacket([TRIUMVI_PACKET_ID] + newPacket.dictionary['src_address'] + decrypted_data)
                 self.callback(newPacketFormatted)
                 self.resetCount = 0
         # APS3B12 control packet
-        elif newPacket and newPacket.dictionary['payload'][0] == APS3B12_PACKET_ID and len(newPacket.dictionary['payload'])==4:
+        elif newPacket and 'payload' in newPacket.dictionary and newPacket.dictionary['payload'][0] == APS3B12_PACKET_ID and len(newPacket.dictionary['payload'])==4:
             skt = socket.socket()
             try:
                 skt.connect((HOST, PORT))
@@ -124,10 +124,12 @@ class triumvi(object):
                         myDevice.state = 'off'
                 elif newPacket.dictionary['payload'][1] == APS3B12_SET_CURRENT:
                     currentVal = float(int(newPacket.dictionary['payload'][2])*256 + int(newPacket.dictionary['payload'][3]))/1000
-                    if currentVal != myDevice.currentVal:
+                    if currentVal > myDevice.currentVal or (currentVal < (myDevice.currentVal - 1.5)):
                         print("Set load current to: {:}".format(currentVal))
                         skt.send('amp='+str(currentVal))
                         myDevice.currentVal = currentVal
+                        print("Flushing FIFO...")
+                        self.flushCC2538TXFIFO()
                 elif newPacket.dictionary['payload'][1] == APS3B12_READ:
                     if newPacket.dictionary['payload'][2] == APS3B12_READ_CURRENT:
                         skt.send('readI')
