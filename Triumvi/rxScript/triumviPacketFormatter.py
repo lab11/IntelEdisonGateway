@@ -46,6 +46,14 @@ class triumviPacket(object):
                 self.dictionary['VRMS'] = data[offset+2]
                 self.dictionary['IRMS'] = unpack(data[offset+4:offset+6]+[0,0])/1000
                 self.dictionary['INA Gain'] = data[offset+3]
+            if data[13] & 2:
+                self.dictionary['Time Stamp'] = datetime.datetime(\
+                    data[offset+6]+2000, \
+                    data[offset+7], \
+                    data[offset+8], \
+                    data[offset+9], \
+                    data[offset+10], \
+                    data[offset+11])
 
         self.dictionary['_meta'] = {
             'received_time': datetime.utcnow().isoformat(),
