@@ -1,7 +1,7 @@
 
 from mySPI import mySPI
 from edisonLED import edisonLED
-from time import sleep
+import time
 import mraa
 from parsePacket import *
 from triumviDecrypt import triumviDecrypt
@@ -26,6 +26,13 @@ APS3B12_READ_CURRENT = 0
 APS3B12_READ = 3
 APS3B12_CURRENT_INFO = 3
 # end of controlling APS3B12
+# RTC related
+TRIUMVI_RTC = 172
+TRIUMVI_RTC_SET = 255
+TRIUMVI_RTC_REQ = 254
+
+# initial current setting while calibrating triumvi
+CALIBRATION_START_SETTING = 1
 
 
 KEY = ['0x46', '0xe2', '0xe5', '0x28', '0x9a', '0x65', '0x3c', '0xe9', '0x0', '0x2f', '0xc1', '0x6e', '0x65', '0xee', '0xc', '0x3e']
@@ -70,6 +77,11 @@ class triumvi(object):
         self._SPI_MASTER_RADIO_ON = 3
         self._SPI_MASTER_RADIO_OFF = 4
         self._SPI_RF_PACKET_SEND = 5
+        self._SPI_MASTER_SET_TIME = 6
+        # delay 0.5 seconds for 2538 to boot
+        time.sleep(0.5)
+        self.updateTimeThread = threading.Thread(target=self.updateTime, args=())
+        self.updateTimeThread.start()
 
         condition.acquire()
         while True:
@@ -80,6 +92,14 @@ class triumvi(object):
             # Keep reading while there are pending interrupts
             while self.cc2538DataReadyInt.read() == 1:
                 self.cc2538ISR()
+
+    def updateTime(self):
+        # get local time every 30 seconds
+        while True:
+            UTC_TIME = time.gmtime()
+            dataout = [self._SPI_MASTER_SET_TIME, 7]+[UTC_TIME.tm_year-2000, UTC_TIME.tm_mon, UTC_TIME.tm_mday, UTC_TIME.tm_hour, UTC_TIME.tm_min, UTC_TIME.tm_sec]
+            dummy = self.cc2538Spi.write(dataout)
+            time.sleep(30)
 
     def requestData(self):
         dummy = self.cc2538Spi.writeByte(self._SPI_MASTER_REQ_DATA)
@@ -124,7 +144,7 @@ class triumvi(object):
                         myDevice.state = 'off'
                 elif newPacket.dictionary['payload'][1] == APS3B12_SET_CURRENT:
                     currentVal = float(int(newPacket.dictionary['payload'][2])*256 + int(newPacket.dictionary['payload'][3]))/1000
-                    if currentVal > myDevice.currentVal or (currentVal < (myDevice.currentVal - 1.5)):
+                    if currentVal > myDevice.currentVal or (currentVal < (myDevice.currentVal - 1.5)) or (currentVal == CALIBRATION_START_SETTING and abs(currentVal - myDevice.currentVal) > 0.01):
                         print("Set load current to: {:}".format(currentVal))
                         skt.send('amp='+str(currentVal))
                         myDevice.currentVal = currentVal
