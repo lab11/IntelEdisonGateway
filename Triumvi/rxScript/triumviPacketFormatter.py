@@ -47,7 +47,7 @@ class triumviPacket(object):
                 self.dictionary['IRMS'] = unpack(data[offset+4:offset+6]+[0,0])/1000
                 self.dictionary['INA Gain'] = data[offset+3]
             if data[13] & 2:
-                self.dictionary['Time Stamp'] = datetime.datetime(\
+                self.dictionary['Time Stamp'] = datetime(\
                     data[offset+6]+2000, \
                     data[offset+7], \
                     data[offset+8], \
