@@ -6,6 +6,8 @@ import mraa
 from parsePacket import *
 from triumviDecrypt import triumviDecrypt
 from triumviPacketFormatter import *
+import signal
+import sys
 
 import threading
 
@@ -32,7 +34,7 @@ TRIUMVI_RTC_SET = 255
 TRIUMVI_RTC_REQ = 254
 
 # initial current setting while calibrating triumvi
-CALIBRATION_START_SETTING = 1
+CALIBRATION_START_SETTING = 0.75
 
 
 KEY = ['0x46', '0xe2', '0xe5', '0x28', '0x9a', '0x65', '0x3c', '0xe9', '0x0', '0x2f', '0xc1', '0x6e', '0x65', '0xee', '0xc', '0x3e']
@@ -80,11 +82,14 @@ class triumvi(object):
         self._SPI_MASTER_SET_TIME = 6
         # delay 0.5 seconds for 2538 to boot
         time.sleep(0.5)
+        self.updateTimeThreadEvent = threading.Event()
         self.updateTimeThread = threading.Thread(target=self.updateTime, args=())
         self.updateTimeThread.start()
 
+        signal.signal(signal.SIGINT, self.signal_handler)
+
         condition.acquire()
-        while True:
+        while not self.updateTimeThreadEvent.is_set():
             condition.wait()
             # When we have been notified we want to read the cc2538
             self.cc2538ISR()
@@ -95,7 +100,7 @@ class triumvi(object):
 
     def updateTime(self):
         # get local time every 30 seconds
-        while True:
+        while not self.updateTimeThreadEvent.is_set():
             UTC_TIME = time.gmtime()
             dataout = [self._SPI_MASTER_SET_TIME, 7]+[UTC_TIME.tm_year-2000, UTC_TIME.tm_mon, UTC_TIME.tm_mday, UTC_TIME.tm_hour, UTC_TIME.tm_min, UTC_TIME.tm_sec]
             dummy = self.cc2538Spi.write(dataout)
@@ -134,24 +139,27 @@ class triumvi(object):
         elif newPacket and 'payload' in newPacket.dictionary and newPacket.dictionary['payload'][0] == APS3B12_PACKET_ID and len(newPacket.dictionary['payload'])==4:
             skt = socket.socket()
             try:
-                skt.connect((HOST, PORT))
                 if newPacket.dictionary['payload'][1] == APS3B12_ENABLE:
                     if myDevice.state == 'off' and newPacket.dictionary['payload'][2] == 1:
+                        skt.connect((HOST, PORT))
                         skt.send('on')
                         myDevice.state = 'on'
                     elif myDevice.state == 'on' and newPacket.dictionary['payload'][2] == 0:
+                        skt.connect((HOST, PORT))
                         skt.send('off')
                         myDevice.state = 'off'
                 elif newPacket.dictionary['payload'][1] == APS3B12_SET_CURRENT:
                     currentVal = float(int(newPacket.dictionary['payload'][2])*256 + int(newPacket.dictionary['payload'][3]))/1000
                     if currentVal > myDevice.currentVal or (currentVal < (myDevice.currentVal - 1.5)) or (currentVal == CALIBRATION_START_SETTING and abs(currentVal - myDevice.currentVal) > 0.01):
                         print("Set load current to: {:}".format(currentVal))
+                        skt.connect((HOST, PORT))
                         skt.send('amp='+str(currentVal))
                         myDevice.currentVal = currentVal
                         print("Flushing FIFO...")
                         self.flushCC2538TXFIFO()
                 elif newPacket.dictionary['payload'][1] == APS3B12_READ:
                     if newPacket.dictionary['payload'][2] == APS3B12_READ_CURRENT:
+                        skt.connect((HOST, PORT))
                         skt.send('readI')
                         value = skt.recv(1024).strip()
                         try:
@@ -199,5 +207,7 @@ class triumvi(object):
     def radioOff(self):
         dummy = self.cc2538Spi.writeByte(self._SPI_MASTER_RADIO_OFF)
 
-
+    def signal_handler(self, signal, frame):
+        self.updateTimeThreadEvent.set()
+        sys.exit(0)
 
