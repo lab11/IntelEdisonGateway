@@ -19,6 +19,7 @@ class packet(object):
         self.dictionary['dest_addr_mode'] = (data[1] & 12)>>2
         self.dictionary['frame_version'] = (data[1] & 48)>>4
         self.dictionary['src_addr_mode'] = (data[1] & 192)>>6
+        self.valid = True
 
         if self.dictionary['dest_addr_mode'] == 0:
             dest_PAN_ID_len = 0
@@ -30,6 +31,7 @@ class packet(object):
             dest_PAN_ID_len = 2
             dest_addr_len = 8
         else:
+            self.valid = False
             return None
         
         if self.dictionary['src_addr_mode'] == 0:
@@ -42,6 +44,7 @@ class packet(object):
             src_PAN_ID_len = 2
             src_addr_len = 8
         else:
+            self.valid = False
             return None
         
         if dest_PAN_ID_len > 0:
@@ -56,4 +59,8 @@ class packet(object):
         if src_addr_len > 0:
             self.dictionary['src_address'] = data[3+dest_PAN_ID_len+dest_addr_len+src_PAN_ID_len:3+dest_PAN_ID_len+dest_addr_len+src_PAN_ID_len+src_addr_len][::-1]
         self.dictionary['payload'] = data[3+dest_PAN_ID_len+dest_addr_len+src_PAN_ID_len+src_addr_len:]
+
+        ##if self.dictionary['frame_type'] != 'Beacon':
+        ##    print(self.dictionary)
+        
         

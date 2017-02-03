@@ -8,12 +8,14 @@ from triumviDecrypt import triumviDecrypt
 from triumviPacketFormatter import *
 import signal
 import sys
+from waveformPacketFormatter import *
+import json
 
 import threading
 
 CC2538INTPINNUM = 38 # MRAA number, GP43
 CC2538RESETPINNUM = 51 # MRAA number, GP41
-MAX_TRIUMVI_PKT_LEN = 50 # maximum triumvi packet length
+MAX_TRIUMVI_PKT_LEN = 128 # maximum triumvi packet length
 MIN_TRIUMVI_PKT_LEN = 14 # minimum triumvi packet length
 MAX_FLUSH_THRESHOLD = 32 # maximum trials before reset cc2538
 TRIUMVI_PACKET_ID = 160 # triumvi packet ID
@@ -32,6 +34,9 @@ APS3B12_CURRENT_INFO = 3
 TRIUMVI_RTC = 172
 TRIUMVI_RTC_SET = 255
 TRIUMVI_RTC_REQ = 254
+
+TRIUMVI_WAVEFORM_ID0 = 161
+TRIUMVI_WAVEFORM_ID1 = 94
 
 # initial current setting while calibrating triumvi
 CALIBRATION_START_SETTING = 0.75
@@ -72,6 +77,8 @@ class triumvi(object):
         self.redLed     = edisonLED('red')
         self.greenLed   = edisonLED('green')
         self.blueLed    = edisonLED('blue')
+
+        self.waveform_packets = []
         # macro, don't touch
         self._SPI_MASTER_REQ_DATA = 0
         self._SPI_MASTER_DUMMY = 1
@@ -89,7 +96,7 @@ class triumvi(object):
         signal.signal(signal.SIGINT, self.signal_handler)
 
         condition.acquire()
-        while not self.updateTimeThreadEvent.is_set():
+        while True:
             condition.wait()
             # When we have been notified we want to read the cc2538
             self.cc2538ISR()
@@ -129,14 +136,36 @@ class triumvi(object):
         #    self.blueLed.leds_off()
         #    self.resetCount = 0
         newPacket = packet(data)
-        if newPacket and 'payload' in newPacket.dictionary and newPacket.dictionary['payload'][0] == TRIUMVI_PACKET_ID:
+        if newPacket.valid == True and newPacket.dictionary['frame_type'] == 'Data' \
+            and newPacket.dictionary['payload'][0] == TRIUMVI_PACKET_ID:
             decrypted_data = triumviDecrypt(KEY, newPacket.dictionary['src_address'], newPacket.dictionary['payload'])
             if decrypted_data:
                 newPacketFormatted = triumviPacket([TRIUMVI_PACKET_ID] + newPacket.dictionary['src_address'] + decrypted_data)
                 self.callback(newPacketFormatted)
                 self.resetCount = 0
+        # waveform packet
+        elif newPacket.valid == True and newPacket.dictionary['frame_type'] == 'Data' \
+            and newPacket.dictionary['payload'][0] == TRIUMVI_WAVEFORM_ID0 \
+            and newPacket.dictionary['payload'][1] == TRIUMVI_WAVEFORM_ID1:
+            self.waveform_packets.append(newPacket)
+            if len(self.waveform_packets) == 2:
+                waveformPacket = waveformPacketFormatter(self.waveform_packets[0], self.waveform_packets[1])
+                if waveformPacket.wdict['valid']:
+                    packetString = json.dumps(waveformPacket.wdict)
+                    skt = socket.socket()
+                    try:
+                        skt.connect(('141.212.11.247', 4910))
+                        skt.send(packetString)
+                        skt.close()
+                    except:
+                        pass
+                    self.waveform_packets = []
+                else:
+                    self.waveform_packets.pop(0)
         # APS3B12 control packet
-        elif newPacket and 'payload' in newPacket.dictionary and newPacket.dictionary['payload'][0] == APS3B12_PACKET_ID and len(newPacket.dictionary['payload'])==4:
+        elif newPacket.valid == True and newPacket.dictionary['frame_type'] == 'Data' \
+            and newPacket.dictionary['payload'][0] == APS3B12_PACKET_ID \
+            and len(newPacket.dictionary['payload'])==4:
             skt = socket.socket()
             try:
                 if newPacket.dictionary['payload'][1] == APS3B12_ENABLE:
@@ -193,8 +222,8 @@ class triumvi(object):
 
     def cc2538ISR(self):
         self.requestData()
-        while self.cc2538DataReadyInt.read() == 1:
-            pass
+        ##while self.cc2538DataReadyInt.read() == 1:
+        ##    pass
         self.getData()
 
     def resetcc2538(self):
