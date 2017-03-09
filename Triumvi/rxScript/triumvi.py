@@ -87,6 +87,7 @@ class triumvi(object):
         self._SPI_MASTER_RADIO_OFF = 4
         self._SPI_RF_PACKET_SEND = 5
         self._SPI_MASTER_SET_TIME = 6
+        self._SPI_MASTER_RST_RF_FIFO = 7
         # delay 0.5 seconds for 2538 to boot
         time.sleep(0.5)
         self.updateTimeThreadEvent = threading.Event()
@@ -213,11 +214,14 @@ class triumvi(object):
 
     def flushCC2538TXFIFO(self):
         self.redLed.leds_on()
+        dummy = self.cc2538Spi.writeByte(self._SPI_MASTER_RST_RF_FIFO)
+        '''
         dummy = self.cc2538Spi.write([self._SPI_MASTER_GET_DATA, MAX_TRIUMVI_PKT_LEN-1] + (MAX_TRIUMVI_PKT_LEN-2)*[0])
         self.resetCount += 1
         if self.resetCount == MAX_FLUSH_THRESHOLD:
             self.resetCount = 0
             self.resetcc2538()
+        '''
         self.redLed.leds_off()
 
     def cc2538ISR(self):
