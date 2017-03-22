@@ -10,6 +10,7 @@ import signal
 import sys
 from waveformPacketFormatter import *
 import json
+from triumviCalCoefPacketFormatter import triumviCalCoefPacketFormatter
 
 import threading
 
@@ -35,8 +36,11 @@ TRIUMVI_RTC = 172
 TRIUMVI_RTC_SET = 255
 TRIUMVI_RTC_REQ = 254
 
-TRIUMVI_WAVEFORM_ID0 = 161
-TRIUMVI_WAVEFORM_ID1 = 94
+TRIUMVI_WAVEFORM_ID0 = 0xa1
+TRIUMVI_WAVEFORM_ID1 = 0x5d
+
+TRIUMVI_CALIBRATION_ID0 = 0xa1
+TRIUMVI_CALIBRATION_ID1 = 0x5d
 
 # initial current setting while calibrating triumvi
 CALIBRATION_START_SETTING = 0.75
@@ -120,7 +124,7 @@ class triumvi(object):
     def getData(self):
         length = self.cc2538Spi.writeByte(self._SPI_MASTER_DUMMY)
         if length < MIN_TRIUMVI_PKT_LEN or length > MAX_TRIUMVI_PKT_LEN:
-            self.flushCC2538TXFIFO()
+            dummy = self.cc2538Spi.write([self._SPI_MASTER_GET_DATA, MAX_TRIUMVI_PKT_LEN-1] + (MAX_TRIUMVI_PKT_LEN-2)*[0])
             return
         self.blueLed.leds_on()
         #print('data length: {0}'.format(length))
@@ -144,6 +148,20 @@ class triumvi(object):
                 newPacketFormatted = triumviPacket([TRIUMVI_PACKET_ID] + newPacket.dictionary['src_address'] + decrypted_data)
                 self.callback(newPacketFormatted)
                 self.resetCount = 0
+        # calibration coefficients packet
+        elif newPacket.valid == True and newPacket.dictionary['frame_type'] == 'Data' \
+            and newPacket.dictionary['payload'][0] == TRIUMVI_CALIBRATION_ID0 \
+            and newPacket.dictionary['payload'][1] == TRIUMVI_CALIBRATION_ID1 \
+            and (len(newPacket.dictionary['payload'])-8) % 26 == 0:
+            coef_packet = triumviCalCoefPacketFormatter(newPacket.dictionary['payload'], newPacket.dictionary['src_address'])
+            skt = socket.socket()
+            try:
+                skt.connect(('141.212.11.247', 4911))
+                skt.send(json.dumps(coef_packet.dictionary))
+                skt.close()
+            except:
+                pass
+            self.callback(coef_packet)
         # waveform packet
         elif newPacket.valid == True and newPacket.dictionary['frame_type'] == 'Data' \
             and newPacket.dictionary['payload'][0] == TRIUMVI_WAVEFORM_ID0 \
@@ -180,7 +198,7 @@ class triumvi(object):
                         myDevice.state = 'off'
                 elif newPacket.dictionary['payload'][1] == APS3B12_SET_CURRENT:
                     currentVal = float(int(newPacket.dictionary['payload'][2])*256 + int(newPacket.dictionary['payload'][3]))/1000
-                    if currentVal > myDevice.currentVal or (currentVal < (myDevice.currentVal - 1.5)) or (currentVal == CALIBRATION_START_SETTING and abs(currentVal - myDevice.currentVal) > 0.01):
+                    if currentVal > myDevice.currentVal or (currentVal < (myDevice.currentVal - 3.5)) or (currentVal == CALIBRATION_START_SETTING and abs(currentVal - myDevice.currentVal) > 0.01):
                         print("Set load current to: {:}".format(currentVal))
                         skt.connect((HOST, PORT))
                         skt.send('amp='+str(currentVal))
