@@ -97,7 +97,13 @@ class le910_serial(object):
             'unsolicited_nmea_data'     :'AT$GPSNMUN=3,1,0,0,0,0,0\r\n', \
             'stop_unsolicited_nmea_data':'+++', \
             'gps_acquired_position'     :'AT$GPSACP\r\n', \
-            'active_gps_antenna'        :'AT$GPSAT=1\r\n' \
+            'active_gps_antenna'        :'AT$GPSAT=1\r\n', \
+            'get_model_name'            :'AT+GMM\r\n', \
+            'get_firmware_version'      :'AT+CGMR\r\n', \
+            'set_text_mode_parameter'   :'AT+CSMP="17",4098,0,2\r\n', \
+            'set_message_format'        :'AT+CMGF=1\r\n', \
+            'send_message'              :'AT+CMGS=', \
+            'sms_body'                  :'' \
         }
 
     def data_available(self):
@@ -126,10 +132,12 @@ class le910_serial(object):
         del self.read_buf[:]
         self.buf_lock = False
 
-    def write(self, cmd):
+    def write(self, cmd, additional_arg=None):
         cmd = cmd.lower()
         at_code = self._command_sets.get(cmd, None)
-        if at_code:
+        if at_code or cmd == 'sms_body':
+            if additional_arg != None:
+                at_code += additional_arg
             self.ser.write(at_code)
             self.last_command = at_code.rstrip()
         else:
