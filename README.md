@@ -13,7 +13,7 @@ The precompiled linux kernel [image](https://github.com/lab11/IntelEdisonGateway
 (based on Intel release, version 3.10.98) comes with necessary drivers for the
 cellular modem and Ethernet controller.
 
-![Front view]<img src="https://github.com/lab11/IntelEdisonGateway/blob/master/images/edison-v3-front.png" alt="Gateway Edison" width="25%;"> ![With enclosure]<img src="https://github.com/lab11/IntelEdisonGateway/blob/master/images/edison-v3-enclosure.png" alt="Gateway Edison Enclosure" width="25%;">
+<img src="https://github.com/lab11/IntelEdisonGateway/blob/master/images/edison-v3-front.png" alt="Gateway Edison" width="25%;"> <img src="https://github.com/lab11/IntelEdisonGateway/blob/master/images/edison-v3-enclosure.png" alt="Gateway Edison Enclosure" width="25%;">
 
 The onboard cellular modem is [NimbeLink Skywire 4G LTE](http://nimbelink.com/skywire-cellular-modem-lte/),
 which supports 100 Mb downlink and 50 Mb uplink and integrated GPS radio.
