@@ -3,9 +3,6 @@ import le910_serial
 import signal
 import sys
 
-def main():
-    send_sms('7348461462', 'Hello, this is message from gateway!')
-
 def send_sms(number, message):
     try:
         le910 = le910_serial.le910_serial()
@@ -50,7 +47,3 @@ def send_sms(number, message):
     print('SMS sent')
 
     le910.stop()
-
-
-if __name__=="__main__":
-    main()
