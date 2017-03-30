@@ -14,10 +14,7 @@ class ad5304(object):
     # LDAC_b
     # D11 ~ D0
     def set_output_voltage(self, channel, voltage):
-        if voltage >= self.ref_volt:
-            value = 4095
-        else:
-            value = int(round(voltage/self.ref_volt*4095))
+        value = max(int(round(voltage/self.ref_volt*4096)), 4095)
         # clear last 4 bit
         if self.resolution == 8:
             value &= 0xff0
