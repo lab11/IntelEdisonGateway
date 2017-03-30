@@ -1,13 +1,18 @@
 
 import mraa
 class mySPI(object):
-    def __init__(self, cs):
+    def __init__(self, cs, spi_mode=mraa.SPI_MODE3):
         self.spi = mraa.Spi(0)
-        self.cs = mraa.Gpio(23) if cs == 0 else mraa.Gpio(9)
+        if cs==0:
+            self.cs = mraa.Gpio(23)
+        elif cs==1: 
+            self.cs = mraa.Gpio(9)
+        elif cs==2:
+            self.cs = mraa.Gpio(32)
         self.cs.dir(mraa.DIR_OUT)
         self.cs.write(1)
         self.spi.frequency(2000000) # 2 MHz
-        self.spi.mode(mraa.SPI_MODE3)
+        self.spi.mode(spi_mode)
         self._WRITE_MAX = 20
         # first write a dummy byte
         self.spi.writeByte(0)
