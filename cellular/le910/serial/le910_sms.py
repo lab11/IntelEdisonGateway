@@ -43,7 +43,8 @@ def send_sms(number, message):
     print('Send message to number: {:}'.format(number))
     le910.write('send_message', '\"' + number + '\"\r\n')
     le910.write('sms_body', message + '\x1a')
-    print(le910.get_data_block())
+    # READ BACK: AT+CMGS="phone number", but I don't care this
+    le910.get_data_block()
     print('SMS sent')
 
     le910.stop()
