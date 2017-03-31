@@ -13,6 +13,7 @@ class mySPI(object):
         self.cs.write(1)
         self.spi.frequency(2000000) # 2 MHz
         self.spi.mode(spi_mode)
+        self.spi_mode = spi_mode
         self._WRITE_MAX = 20
         # first write a dummy byte
         self.spi.writeByte(0)
@@ -22,6 +23,7 @@ class mySPI(object):
 
     # 1 byte Data
     def writeByte(self, data):
+        self.spi.mode(self.spi_mode)
         # dummy byte
         self.spi.writeByte(0)
         self.cs.write(0)
@@ -31,6 +33,7 @@ class mySPI(object):
 
     # byte array
     def write(self, data):
+        self.spi.mode(self.spi_mode)
         data = bytearray(data)
         self.spi.writeByte(0)
         self.cs.write(0)
