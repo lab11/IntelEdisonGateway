@@ -14,7 +14,7 @@ class triumviPacket(object):
         self._TRIUMVI_PKT_ID = 160
         self._AES_PKT_ID = 120
         self._DISPLAYORDER = \
-        ['Packet Type', 'Source Addr', 'Power', \
+        ['Time Stamp', 'Packet Counter', 'Packet Type', 'Source Addr', 'Power', \
         'External Voltage Waveform', 'Battery Pack Attached', 'Three Phase Unit', \
         'Frame Write', 'Panel ID', 'Circuit ID', 'Power Factor', 'VRMS', 'IRMS', 'INA Gain']
 
@@ -27,7 +27,7 @@ class triumviPacket(object):
 
         # self.dictionary['Source Addr'] = [hex(i) for i in data[1:9]]
         device_id = ''.join(['{:02x}'.format(i) for i in data[1:9]])
-        self.dictionary['Power'] = unpack(data[9:13])/1000
+        self.dictionary['Power'] = self.exponentTransform(data[9:13])/1000
         offset = 14
         if self.dictionary['Packet Type'] == 'Triumvi Packet':
             if data[13] & 128:
@@ -44,20 +44,24 @@ class triumviPacket(object):
             if data[13] & 4:
                 self.dictionary['Power Factor'] = unpack(data[offset:offset+2]+[0,0])/1000
                 self.dictionary['VRMS'] = data[offset+2]
-                self.dictionary['IRMS'] = unpack(data[offset+4:offset+6]+[0,0])/1000
+                self.dictionary['IRMS'] = self.exponentTransform(data[offset+4:offset+6])/1000
                 self.dictionary['INA Gain'] = data[offset+3]
+                offset += 6
             if data[13] & 2:
                 try:
                     self.dictionary['Time Stamp'] = datetime(\
-                        data[offset+6]+2000, \
-                        data[offset+7], \
-                        data[offset+8], \
-                        data[offset+9], \
-                        data[offset+10], \
-                        data[offset+11])
+                        data[offset]+2000, \
+                        data[offset+1], \
+                        data[offset+2], \
+                        data[offset+3], \
+                        data[offset+4], \
+                        data[offset+5])
                 except:
-                    print(data[offset+6], data[offset+7], data[offset+8], data[offset+9], data[offset+10], data[offset+11])
+                    print(data[offset], data[offset+1], data[offset+2], data[offset+3], data[offset+4], data[offset+5])
                     print("RTC data corrupt, device ID: {:}".format(device_id))
+                offset += 6
+            if data[13] & 1:
+                self.dictionary['Packet Counter'] = int(unpack(data[offset:offset+4]))
 
         self.dictionary['_meta'] = {
             'received_time': datetime.utcnow().isoformat(),
@@ -75,4 +79,16 @@ class triumviPacket(object):
             'Hour':timeStamp.hour, \
             'Minute':timeStamp.minute, \
             'Second':timeStamp.second }
+
+    def exponentTransform(self, data):
+        if len(data) == 4:
+            reading = (data[0] + (data[1]<<8) + (data[2]<<16) + (data[3]<<24))
+            exponent = (((reading & (3<<30))>>30) & 3)
+            reading &= ~(3<<30)
+        else:
+            reading = (data[0] + (data[1]<<8))
+            exponent = (((reading & (3<<14))>>14) & 3)
+            reading &= ~(3<<14)
+        reading <<= (2*exponent)
+        return float(reading)
 
