@@ -43,9 +43,9 @@ class triumviPacket(object):
                 self.dictionary['Fram Write'] = True
             if data[13] & 4:
                 self.dictionary['Power Factor'] = unpack(data[offset:offset+2]+[0,0])/1000
-                self.dictionary['VRMS'] = data[offset+2]
+                self.dictionary['VRMS'] = ((data[offset+3]&0xc0)<<2) + data[offset+2]
+                self.dictionary['INA Gain'] = data[offset+3]&0x3f
                 self.dictionary['IRMS'] = self.exponentTransform(data[offset+4:offset+6])/1000
-                self.dictionary['INA Gain'] = data[offset+3]
                 offset += 6
             if data[13] & 2:
                 try:
