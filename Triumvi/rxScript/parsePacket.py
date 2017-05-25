@@ -60,7 +60,8 @@ class packet(object):
             self.dictionary['src_address'] = data[3+dest_PAN_ID_len+dest_addr_len+src_PAN_ID_len:3+dest_PAN_ID_len+dest_addr_len+src_PAN_ID_len+src_addr_len][::-1]
         self.dictionary['payload'] = data[3+dest_PAN_ID_len+dest_addr_len+src_PAN_ID_len+src_addr_len:]
 
-        ##if self.dictionary['frame_type'] != 'Beacon':
-        ##    print(self.dictionary)
+        #if self.dictionary['frame_type'] == 'Beacon':
+            #print(self.dictionary['src_address'])
+            #print(self.dictionary)
         
         

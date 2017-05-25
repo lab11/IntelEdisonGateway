@@ -62,6 +62,7 @@ class triumviPacket(object):
                 offset += 6
             if data[13] & 1:
                 self.dictionary['Packet Counter'] = int(unpack(data[offset:offset+4]))
+                offset += 4
 
         self.dictionary['_meta'] = {
             'received_time': datetime.utcnow().isoformat(),

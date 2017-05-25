@@ -143,9 +143,13 @@ class triumvi(object):
         newPacket = packet(data)
         if newPacket.valid == True and newPacket.dictionary['frame_type'] == 'Data' \
             and newPacket.dictionary['payload'][0] == TRIUMVI_PACKET_ID:
+            # RSSI byte is not encrypted
+            rssi = newPacket.dictionary['payload'].pop()
+            rssi = rssi-256 if rssi>=128 else rssi
             decrypted_data = triumviDecrypt(KEY, newPacket.dictionary['src_address'], newPacket.dictionary['payload'])
             if decrypted_data:
                 newPacketFormatted = triumviPacket([TRIUMVI_PACKET_ID] + newPacket.dictionary['src_address'] + decrypted_data)
+                newPacketFormatted.dictionary['RSSI'] = rssi
                 self.callback(newPacketFormatted)
                 self.resetCount = 0
         # calibration coefficients packet
