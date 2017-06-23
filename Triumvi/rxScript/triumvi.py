@@ -141,11 +141,12 @@ class triumvi(object):
         #    self.blueLed.leds_off()
         #    self.resetCount = 0
         newPacket = packet(data)
-        if newPacket.valid == True and newPacket.dictionary['frame_type'] == 'Data' \
-            and newPacket.dictionary['payload'][0] == TRIUMVI_PACKET_ID:
+        if newPacket.valid == True:
             # RSSI byte is not encrypted
             rssi = newPacket.dictionary['payload'].pop()
             rssi = rssi-256 if rssi>=128 else rssi
+        if newPacket.valid == True and newPacket.dictionary['frame_type'] == 'Data' \
+            and newPacket.dictionary['payload'][0] == TRIUMVI_PACKET_ID:
             decrypted_data = triumviDecrypt(KEY, newPacket.dictionary['src_address'], newPacket.dictionary['payload'])
             if decrypted_data:
                 newPacketFormatted = triumviPacket([TRIUMVI_PACKET_ID] + newPacket.dictionary['src_address'] + decrypted_data)
